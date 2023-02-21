@@ -200,7 +200,7 @@ class BLE(Thread):
     #------------------------------------------------------------#
 
     def disconnect(self):
-        self.connectedDevice = None
+        #self.connectedDevice = None
         self.ask2Disconnect = False
         pass
 

@@ -18,7 +18,7 @@ from Thread_BLE import*
 from utils import*
 import os
 
-MOTORS_TYPE = ["servo", "bdc"]
+MOTORS_TYPE = ["servo", "bdc", "sma"]
 
 
 ######################################## GUI #########################################
@@ -26,7 +26,6 @@ MOTORS_TYPE = ["servo", "bdc"]
 class GUI:
     def __init__(self):
         #"""Class to describe the Graphical User Interface"""
-        #self.motorList = ["Left", "Right", "Tail"]
         self.motorList = []
         self.motorSel = None
         self.scaleValue = None
@@ -602,6 +601,9 @@ class GUI:
 
         while self.ThreadBLE.connectedDevice is None:
             self.mainWindow.update()
+
+        print(" C'est bon on est passé ! ")
+        print(self.ThreadBLE.connectedDevice)
 
         if self.ThreadBLE.connectedDevice == "Fail":
             print("Detect failure")
