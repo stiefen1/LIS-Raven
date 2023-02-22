@@ -87,8 +87,8 @@ class configuration:
     def __init__(self):
         self.path = ""
         self.name = "default"
-        self.data = {"param":[], "servo":[], "bdc":[]}
-        self.uuid = {"param":[], "servo":[], "bdc":[]}
+        self.data = {"param":[], "servo":[], "bdc":[], "sma":[]}
+        self.uuid = {"param":[], "servo":[], "bdc":[], "sma":[]}
         self.treeData = None
 
     def get_treeData(self):
