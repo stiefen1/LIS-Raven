@@ -85,6 +85,7 @@ class imu:
 
 class configuration:
     def __init__(self):
+        self.path = ""
         self.name = "default"
         self.data = {"param":[], "servo":[], "bdc":[]}
         self.uuid = {"param":[], "servo":[], "bdc":[]}

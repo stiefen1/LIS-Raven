@@ -1,4 +1,4 @@
-Fixed Wing
+FixedWing
 servo
 	motorA	sagesa4
 bdc

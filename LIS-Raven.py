@@ -3,14 +3,16 @@
 # RESTE A FAIRE :
 #       - METTRE POP-UP D'ERREUR QUAND ON EST PAS CONNECTE AU BLUETOOTH
 #       - FIXER LES VALEURS QUI PEUVENT ÊTRE ENVOYE ENTRE 0 - 255 PEU IMPORTE LE MOTEUR
-#       - Add automatic creation of Arduino Files depending on the configuration
 #       - Highlight la configuration actuellement utilisée
-#       - ADD CHECK BUTTON TO ACTIVATE OR NOT THE IMU VALUES
-#       - CHANGE FONT WHEN IMU IS ACTIVATED OR NOT
 #       - QUAND ON CLIQUE SUR NEW CONFIG PEUT ETRE AJOUTE UNE CONFIG DANS LA LISTE EN DEMANDANT LE NOM
+#       - Enregistrement des fichers se fait seulement dans le dossier courant, peut être ajouter un attribut path dans configuration !
+#       - Augmenter la hauteur des popup moteur et param
+#       - Pour la génération du code, ajouter l'IMU si la case est cochée
+#       - Corriger le Set Zero de l'IMU -> Ce serait juste une variable booléenne à part. L'offset serait utilisé dans le code Arduino directement
+#         il n'y aurait pas de correction de cet offset dans l'interface, on lirait simplement les valeurs en provenance de l'Arduino
 
 from threading import Thread
-import asyncio
+import asyncio, os, uuid
 import tkinter as tk
 from tkinter import ttk, END, messagebox
 from tkinter.filedialog import askopenfilename, asksaveasfilename
@@ -18,10 +20,8 @@ from tkinter.font import Font
 import numpy as np
 from Thread_BLE import*
 from utils import*
-import os
 
 MOTORS_TYPE = ["servo", "bdc", "sma"]
-
 
 ######################################## GUI #########################################
 
@@ -130,6 +130,8 @@ class GUI:
         # Add entry for uuid
         self.uuidParam_label = ttk.Label(self.addParam_frame, text="UUID : ", anchor="center").grid(column=0, row=0, sticky="nsew")
         self.uuidParam_entry = ttk.Entry(self.addParam_frame)
+        self.uuidParam_entry.delete(0, END)
+        self.uuidParam_entry.insert(0, str(uuid.uuid4()))
         self.uuidParam_entry.grid(column=1, row=0, columnspan=3, sticky="nsew")
 
         # Add entry for name
@@ -154,7 +156,7 @@ class GUI:
         self.addMotor_window = tk.Toplevel()
         self.addMotor_window.withdraw() # Hide
         self.addMotor_window.title("New Motor")
-        self.addMotor_window.geometry("280x120")
+        self.addMotor_window.geometry("280x140")
         self.addMotor_window.resizable(0,0)
 
         # Add frame
@@ -163,6 +165,8 @@ class GUI:
         # Add entry for uuid
         self.uuidMotor_label = ttk.Label(self.addMotor_frame, text="UUID : ", anchor="center").grid(column=0, row=0, sticky="nsew")
         self.uuidMotor_entry = ttk.Entry(self.addMotor_frame)
+        self.uuidMotor_entry.delete(0, END)
+        self.uuidMotor_entry.insert(0, str(uuid.uuid4()))
         self.uuidMotor_entry.grid(column=1, row=0, columnspan=3, sticky="nsew")
 
         # Add entry for name
@@ -200,6 +204,8 @@ class GUI:
         self.fileMenu.add_command(label="Save config as.. ", command=self._save_config_as)
         self.fileMenu.add_command(label="Load config.. ", command=self._load_config)
         self.fileMenu.add_separator()
+        self.fileMenu.add_command(label="Generate code", command=self._generate_arduino_code)
+        self.fileMenu.add_separator()
         self.fileMenu.add_command(label="Quit", command=self.mainWindow.destroy)
 
         # Connexion menu
@@ -234,7 +240,7 @@ class GUI:
         self.frmTable_entry = [[0 for x in range(self.nb_args)] for y in range(self.nb_params)]
 
         self.frmTable_button.append(ttk.Button(self.frmTable, text="+", cursor="hand2", style='Accent.TButton', command=self._show_addParamPopup))
-        self.frmTable_button[-1].grid(row=0, column=0, rowspan=1, columnspan=1, padx=(10, 5), pady=2)#, sticky="nsew")
+        self.frmTable_button[-1].grid(row=0, column=0, rowspan=1, columnspan=1, padx=(10, 5), pady=2)
 
         for i in range(self.nb_params):
             self.frmTable.rowconfigure(i, weight=1)
@@ -243,7 +249,7 @@ class GUI:
                 if j >= 1 and i==0:
                     # Only places W-1 entries on the first line
                     self.frmTable_entry[i][j] = ttk.Entry(self.frmTable)
-                    self.frmTable_entry[i][j].grid(row=i, column=j, rowspan=1, columnspan=1, padx=(5, 10), pady=2)#, sticky="nsew")        
+                    self.frmTable_entry[i][j].grid(row=i, column=j, rowspan=1, columnspan=1, padx=(5, 10), pady=2)     
                 
         self.frmTable.grid(row=1, column=0, rowspan=4, columnspan=3, padx=(10, 0), pady=(0, 10), sticky="nsew")
 
@@ -251,7 +257,6 @@ class GUI:
 
     def _reset_params_table(self):
         self._init_frmTable()
-        pass
 
     #------------------------------------------------------------#
 
@@ -260,15 +265,12 @@ class GUI:
 
         ########################################### Top Frame ####################################################
         self.subfrmControlT = ttk.LabelFrame(self.frmControl, text=" Measurements ", style="TLabelframe")
-        #self.sublabelControlT = ttk.LabelFrame(self.subfrmControlT, text="MEASUREMENT", style="TLabelframe").grid(sticky="nsew", padx=10, pady=10)
 
         self.subfrmControlT.rowconfigure(0, weight=1)
         self.subfrmControlT.columnconfigure(0, weight=1)
 
-        
         ######################################## Accelerometer Frame ####################################################
         self.subfrmControlM = ttk.LabelFrame(self.frmControl, style='TLabelframe', text=" Inertial Measurement Unit ")
-        #self.imu_labelControlM = ttk.Label(self.subfrmControlM, text="INERTIAL MEASUREMENT UNIT", foreground=self.title_foreground, font = self.title_font, anchor="center").grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")#.pack(fill=tk.BOTH, expand=True)
 
         self.ax_labelControlM = ttk.Label(self.subfrmControlM, text="ax").grid(row=1, column=0)
         self.ay_labelControlM = ttk.Label(self.subfrmControlM, text="ay").grid(row=2, column=0)
@@ -311,15 +313,9 @@ class GUI:
         
         self.subfrmControlB = ttk.LabelFrame(self.frmControl, text=" Motor Control ", style='TLabelframe')
 
-        #self.motor_labelControlB = ttk.Label(self.subfrmControlB, text="MOTOR CONTROL", foreground=self.title_foreground, font = self.title_font, anchor="center").grid(row=0, column=0, columnspan=3, padx=5, pady=5, sticky="nsew")
         self.pos_scaleControlB = ttk.Scale(self.subfrmControlB, command=self._getScaleValue, from_=0, to=255, cursor="hand2", style="TScale").grid(row=0, column=0, columnspan=3, padx=10, pady=(0, 10), sticky="nsew")
-
-        #self.setMin_buttonB = ttk.Button(self.subfrmControlB, text="Set Min", command=self._setMotorMin, cursor="hand2").grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
-
         self.currentPos_ButtonControlB = ttk.Button(self.subfrmControlB, text="Set Motor Command", cursor='hand2', command=self._setMotorCommand)
         self.currentPos_ButtonControlB.grid(row=1, column=0, columnspan=3, padx=10, pady=(0, 10), sticky="nsew")
-
-        #self.setMax_buttonB = ttk.Button(self.subfrmControlB, text="Set Max", command=self._setMotorMax, cursor="hand2").grid(row=1, column=2, padx=10, pady=(0, 10), sticky="nsew")
 
         self.motorSel_comboBoxB = ttk.Combobox(self.subfrmControlB, values=self.motorList, cursor="hand2", style='TCombobox')
         self.motorSel_comboBoxB.grid(row=2, column=0, columnspan=2, padx=10, pady=(0, 10), sticky="we")
@@ -354,6 +350,7 @@ class GUI:
         self.scrollBarConfig.grid(row=0, column=3, rowspan=3, columnspan=1, padx=(5, 5), pady=10, sticky="nsew")
 
         self.tree = ttk.Treeview(self.frmConfig, columns=('type'),yscrollcommand=self.scrollBarConfig.set, height=2)#, selectmode="browse")
+
         self.tree.heading('#0', text="", anchor="center")
         self.tree.column('#0', minwidth=0, width=100)
         self.tree.heading('type', text='type', anchor="w")
@@ -408,11 +405,10 @@ class GUI:
         if self.ThreadBLE.useIMU: # Si on utilise l'IMU -> Affichage normal des boutons + link correct des bouttons
             self.setZero_ButtonControlM.configure(command=self.setZero_IMU, text="Offset", cursor="hand2")
             self.update_ButtonControlM.configure(command=self.updateTab_IMU, text="Update", cursor="hand2")
-            pass
+            
         elif not(self.ThreadBLE.useIMU): # Si on utilise pas l'IMU -> Affichage vide des boutons + link to do_nothing() des bouttons
             self.setZero_ButtonControlM.configure(command=self.do_nothing, text="", cursor="arrow")
             self.update_ButtonControlM.configure(command=self.do_nothing, text="", cursor="arrow")
-            pass
 
     #------------------------------------------------------------#
 
@@ -449,7 +445,6 @@ class GUI:
                 if config.name == config_name:
                     self.currentConfig = self.configList[i] # Delete first item that has the right name
                     break
-
             
             # Modify motors and params list
             self.motorList = [] # Reset motor list accessible by interface
@@ -464,8 +459,6 @@ class GUI:
                 if key == "param":
                     for param, uuid in zip(self.currentConfig.data[key], self.currentConfig.uuid[key]):
                         self._set_new_param(name=param, uuid=uuid)
-
-
             
         except:
             pass
@@ -537,9 +530,9 @@ class GUI:
         if rowIdx < self.nb_params:
             # Create another line in the input list
             self.frmTable_button.append(ttk.Button(self.frmTable, text="+", style='Accent.TButton', cursor="hand2", command=self._show_addParamPopup))
-            self.frmTable_button[-1].grid(row=rowIdx, column=0, rowspan=1, columnspan=1, padx=(10, 5), pady=2)#, sticky="nsew")
+            self.frmTable_button[-1].grid(row=rowIdx, column=0, rowspan=1, columnspan=1, padx=(10, 5), pady=2)
             self.frmTable_entry[rowIdx][1] = ttk.Entry(self.frmTable)
-            self.frmTable_entry[rowIdx][1].grid(row=rowIdx, column=1, rowspan=1, columnspan=1, padx=(5, 10), pady=2)#, sticky="nsew")
+            self.frmTable_entry[rowIdx][1].grid(row=rowIdx, column=1, rowspan=1, columnspan=1, padx=(5, 10), pady=2)
 
         # Close Popup
         self._close_addParamPopup()
@@ -667,7 +660,6 @@ class GUI:
         # Maintain tkinter thread alive while waiting for detected devices
         while self.ThreadBLE.detectedDevices is None:
             self.mainWindow.update()
-            pass
 
         print("Device detected")
         
@@ -754,18 +746,18 @@ class GUI:
 
     def _create_new_config(self):
         messagebox.showinfo(title="create new configuration", message="To create a new pre-defined configuration, create a text file and fill it in the same way as in the example 'config.txt' ")
-        pass
 
     #------------------------------------------------------------#
 
     def _save_config(self):
         write_config_file(self.currentConfig)
-        messagebox.showinfo(title="save configuration", message="File "+self.currentConfig.name+".txt has been successfully saved !")
+        messagebox.showinfo(title="save configuration", message="File " + self.currentConfig.name + ".txt has been successfully saved !")
 
     #------------------------------------------------------------#
 
     def _save_config_as(self):
         path = asksaveasfilename()
+        self.currentConfig.path = path
         self.currentConfig.name = os.path.basename(path)
         write_config_file(self.currentConfig)
         self._configList_2_treeData()
@@ -775,24 +767,20 @@ class GUI:
     #------------------------------------------------------------#
 
     def _load_config(self):
-        #self.currentConfig = read_config_file(askopenfilename())
         config = read_config_file(askopenfilename())
         self.configList.append(config)
         self._configList_2_treeData()
         self._update_tree()
-        #messagebox.showinfo(title="load configuration", message= "Configuration *" + self.currentConfig.name + "* has been successfully loaded ! ")
 
     #------------------------------------------------------------#
 
     def _save_measure(self):
         messagebox.showinfo(title="Oups", message="This option is not yet implemented")
-        pass
 
     #------------------------------------------------------------#
     
     def _save_measure_as(self):
         messagebox.showinfo(title="Oups", message="This option is not yet implemented")
-        pass
 
     #------------------------------------------------------------#
 
@@ -841,6 +829,8 @@ class GUI:
                             newfile.write("            if(" + element + "_char.written()){\n                " + element + " = " + element + "_char.value();\n            }\n")                    
                 
             newfile.close()
+            
+        messagebox.showinfo(title="Generate code", message="Code has been successfully generated !")
 
 ######################################### TEST #########################################
 

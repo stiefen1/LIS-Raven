@@ -1,5 +1,5 @@
 from threading import Thread
-import asyncio
+import asyncio, uuid
 import numpy as np
 
 from bleak import BleakClient
@@ -17,16 +17,13 @@ class BLE(Thread):
         super().__init__()
         
         self._uuid_init = {
-            "motorVal":'13012F03-F8C3-4700-A8F4-15CD926DA146',
-            "motorSel":'13012F03-F8C3-4701-A8F4-15CD926DA146',
-            "aX":'6b64b0c4-b675-4720-a02a-d7f6b02ae9db',
-            "aY":'6b64b0c4-b675-4721-a02a-d7f6b02ae9db',
-            "aZ":'6b64b0c4-b675-4722-a02a-d7f6b02ae9db',
-            "gX":'6b64b0c4-b675-4723-a02a-d7f6b02ae9db',
-            "gY":'6b64b0c4-b675-4724-a02a-d7f6b02ae9db',
-            "gZ":'6b64b0c4-b675-4725-a02a-d7f6b02ae9db',
-            "setZero":'6b64b0c4-b675-4726-a02a-d7f6b02ae9db',
-            "temperature":'aa06d7d0-3496-4868-8990-faccf1581d40'}
+            "aX":str(uuid.uuid4()),
+            "aY":str(uuid.uuid4()),
+            "aZ":str(uuid.uuid4()),
+            "gX":str(uuid.uuid4()),
+            "gY":str(uuid.uuid4()),
+            "gZ":str(uuid.uuid4()),
+            "setZero":str(uuid.uuid4())}
 
         self._uuid = self._uuid_init
 
