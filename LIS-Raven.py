@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 # RESTE A FAIRE :
-#       - UPDATE LES CONFIG QUAND ON AJOUTE UN MOTEUR OU UN PARAMETRE : ACTUELLEMENT QUAND ON AJOUTE UN MOTEUR, C'EST PAR DEFAUT MIS COMME UN SERVO
-#       - METTRE UNE CONFIG "DEFAULT" AVEC AUCUN MOTEUR ET AUCUN PARAMETRE QUAND LA LISTE EST VIDE
 #       - METTRE POP-UP D'ERREUR QUAND ON EST PAS CONNECTE AU BLUETOOTH
-#       - AJOUTER "type" dans la pop-up motor
 #       - FIXER LES VALEURS QUI PEUVENT ÊTRE ENVOYE ENTRE 0 - 255 PEU IMPORTE LE MOTEUR
+#       - Add automatic creation of Arduino Files depending on the configuration
+#       - Highlight la configuration actuellement utilisée
+#       - ADD CHECK BUTTON TO ACTIVATE OR NOT THE IMU VALUES
+#       - CHANGE FONT WHEN IMU IS ACTIVATED OR NOT
+#       - QUAND ON CLIQUE SUR NEW CONFIG PEUT ETRE AJOUTE UNE CONFIG DANS LA LISTE EN DEMANDANT LE NOM
 
 from threading import Thread
 import asyncio
@@ -60,7 +62,7 @@ class GUI:
         self.title_foreground = '#444777444'
      
         self.mainWindow.title("LIS-Raven")
-        self.mainWindow.geometry("600x550")
+        self.mainWindow.geometry("650x550")
         self.mainWindow.resizable(0,0)
 
         for i in range(5):
@@ -290,11 +292,18 @@ class GUI:
         self.gyval_labelControlM.grid(row=2, column=3)
         self.gzval_labelControlM.grid(row=3, column=3)
         
-        self.setZero_ButtonControlM = ttk.Button(self.subfrmControlM, command=self.setZero_IMU, text="Offset", cursor="hand2").grid(row = 4, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
-        self.update_ButtonControlM = ttk.Button(self.subfrmControlM, command=self.updateTab_IMU, text="Update", cursor="hand2").grid(row=4, column=2, columnspan=2, padx=10, pady=10, sticky="nsew")
+        self.setZero_ButtonControlM = ttk.Button(self.subfrmControlM, command=self.do_nothing, text="", cursor="arrow")
+        self.setZero_ButtonControlM.grid(row = 4, column=0, columnspan=1, padx=4, pady=10, sticky="ns")
+        self.update_ButtonControlM = ttk.Button(self.subfrmControlM, command=self.do_nothing, text="", cursor="arrow")
+        self.update_ButtonControlM.grid(row=4, column=1, columnspan=1, padx=4, pady=10, sticky="ns")
+
+        self.useIMU_label = ttk.Label(self.subfrmControlM, text="Use IMU : ").grid(row=4, column=2, padx=20, pady=10, sticky="nsew")
+        self.useIMU_intVal = tk.IntVar()
+        self.useIMU_checkButtonM = ttk.Checkbutton(self.subfrmControlM, command=self.toggle_useIMU, variable=self.useIMU_intVal)
+        self.useIMU_checkButtonM.grid(row=4, column=3, columnspan=1, padx=20, pady=10, sticky="nsew")
 
         for i in range(5):
-            for j in range(4):
+            for j in range(5):
                 self.subfrmControlM.rowconfigure(i, weight=1)
                 self.subfrmControlM.columnconfigure(j, weight=1)
 
@@ -390,6 +399,20 @@ class GUI:
                 self.frmConfig.columnconfigure(j, weight=1)
         
         self.frmConfig.grid(row=0, column=0, rowspan=1, columnspan=3, padx=(10, 0), pady=10, sticky="nsew")            
+
+    #------------------------------------------------------------#
+
+    def toggle_useIMU(self):
+        self.ThreadBLE.useIMU = self.useIMU_intVal.get()
+
+        if self.ThreadBLE.useIMU: # Si on utilise l'IMU -> Affichage normal des boutons + link correct des bouttons
+            self.setZero_ButtonControlM.configure(command=self.setZero_IMU, text="Offset", cursor="hand2")
+            self.update_ButtonControlM.configure(command=self.updateTab_IMU, text="Update", cursor="hand2")
+            pass
+        elif not(self.ThreadBLE.useIMU): # Si on utilise pas l'IMU -> Affichage vide des boutons + link to do_nothing() des bouttons
+            self.setZero_ButtonControlM.configure(command=self.do_nothing, text="", cursor="arrow")
+            self.update_ButtonControlM.configure(command=self.do_nothing, text="", cursor="arrow")
+            pass
 
     #------------------------------------------------------------#
 
@@ -773,6 +796,51 @@ class GUI:
 
     #------------------------------------------------------------#
 
+    def _generate_arduino_code(self):
+        with open("Arduino_template/Arduino_template.txt", 'r') as template:
+            try:
+                os.mkdir(self.currentConfig.name) # Arduino requires to store .ino files into a folder of the same name
+            except:
+                pass
+            
+            newfile = open(self.currentConfig.name + "/" + self.currentConfig.name + ".ino", 'w')
+            for line in template.readlines():
+                newfile.write(line)
+                if line == "// *BLE Characteristics*\n":
+                    # Add characteristics
+                    for key in self.currentConfig.data:
+                        for element, uuid in zip(self.currentConfig.data[key], self.currentConfig.uuid[key]):
+                            newfile.write("BLEByteCharacteristic " + element + "_char(\"" + uuid + "\", BLEWriteWithoutResponse | BLERead);\n")
+                
+                elif line == "// *Declare variables to store datas*\n":
+                    # Add variables
+                    for key in self.currentConfig.data:
+                        for element in self.currentConfig.data[key]:
+                            newfile.write("uint8_t " + element + " = 0;\n")
+
+                elif line == "    // *Add characteristics to the service*\n":
+                    # Add characteristic to the service
+                    for key in self.currentConfig.data:
+                        for element in self.currentConfig.data[key]:
+                            newfile.write("    seeedService.addCharacteristic(" + element + "_char);\n")
+
+                elif line == "    // set the initial value to 0\n":
+                    # Set initial value of the variables to 0
+                    for key in self.currentConfig.data:
+                        for element in self.currentConfig.data[key]:
+                            newfile.write("    " + element + "_char.writeValue(0);\n")
+
+                elif line == "    // *Set advertised local name and service UUID*\n":
+                    # Set initial value of the variables to 0
+                    newfile.write("    BLE.setLocalName(\"" + self.currentConfig.name + "\");\n")
+                
+                elif line == "	    // *Read values*\n":
+                    # Read values of each characteristic
+                    for key in self.currentConfig.data:
+                        for element in self.currentConfig.data[key]:
+                            newfile.write("            if(" + element + "_char.written()){\n                " + element + " = " + element + "_char.value();\n            }\n")                    
+                
+            newfile.close()
 
 ######################################### TEST #########################################
 

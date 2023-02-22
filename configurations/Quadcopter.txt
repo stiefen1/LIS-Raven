@@ -1,0 +1,9 @@
+Quadcopter
+servo
+	motor1	a3456
+bdc
+	motor2	b737
+param
+	kp	c4832
+	ki	d9287c
+	kd	t0019

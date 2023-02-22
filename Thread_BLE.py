@@ -36,6 +36,7 @@ class BLE(Thread):
         self.device2Connect = None
         self.connectedDevice = None
         self.detectedDevices = None
+        self.useIMU = False
 
         self.param_request = {} # CONTAINS ONLY {"name": str, "value": int} of the current request
         self.imu = imu()
@@ -64,6 +65,7 @@ class BLE(Thread):
         while not(self.ask2Connect):
             #print("wait2connect")
             await asyncio.sleep(0.5)
+        self.ask2Connect = False
 
     #------------------------------------------------------------#
     
@@ -91,16 +93,18 @@ class BLE(Thread):
                             async with BleakClient(d.address) as self.client:
                                 self.connectedDevice = d.name
                                 while not(self.ask2Disconnect):
+                                    print("com")
                                     await self.communicate()
+                                    print("com fin")
 
                                 await self.client.disconnect()
+                                self.ask2Disconnect = False
+
                         except:
                             self.connectedDevice = "Fail"
                             print(self.connectedDevice)
                                 
-                        self.disconnect()
                         print("PERIPHERAL IS NOW DISCONNECTED")
-            self.ask2Connect = False
 
     #------------------------------------------------------------#
 
@@ -109,30 +113,34 @@ class BLE(Thread):
         acc = [0., 0., 0.]
         gyro = [0., 0., 0.]
 
-        acc[0] = await self.client.read_gatt_char(self._uuid["aX"])
-        acc[1] = await self.client.read_gatt_char(self._uuid["aY"])
-        acc[2] = await self.client.read_gatt_char(self._uuid["aZ"])
+        if(self.useIMU):
+            try:
+                acc[0] = await self.client.read_gatt_char(self._uuid["aX"])
+                acc[1] = await self.client.read_gatt_char(self._uuid["aY"])
+                acc[2] = await self.client.read_gatt_char(self._uuid["aZ"])
 
-        gyro[0] = await self.client.read_gatt_char(self._uuid["gX"])
-        gyro[1] = await self.client.read_gatt_char(self._uuid["gY"])
-        gyro[2] = await self.client.read_gatt_char(self._uuid["gZ"])
+                gyro[0] = await self.client.read_gatt_char(self._uuid["gX"])
+                gyro[1] = await self.client.read_gatt_char(self._uuid["gY"])
+                gyro[2] = await self.client.read_gatt_char(self._uuid["gZ"])
 
-        acc[0] = int.from_bytes(acc[0], "little")/100 - 1000
-        acc[1] = int.from_bytes(acc[1], "little")/100 - 1000
-        acc[2] = int.from_bytes(acc[2], "little")/100 - 1000
+                acc[0] = int.from_bytes(acc[0], "little")/100 - 1000
+                acc[1] = int.from_bytes(acc[1], "little")/100 - 1000
+                acc[2] = int.from_bytes(acc[2], "little")/100 - 1000
 
-        gyro[0] = int.from_bytes(gyro[0], "little")/100 - 1000
-        gyro[1] = int.from_bytes(gyro[1], "little")/100 - 1000
-        gyro[2] = int.from_bytes(gyro[2], "little")/100 - 1000
+                gyro[0] = int.from_bytes(gyro[0], "little")/100 - 1000
+                gyro[1] = int.from_bytes(gyro[1], "little")/100 - 1000
+                gyro[2] = int.from_bytes(gyro[2], "little")/100 - 1000
 
-        self.imu._set_acc(np.array(acc))
-        self.imu._set_gyro(np.array(gyro))
+                self.imu._set_acc(np.array(acc))
+                self.imu._set_gyro(np.array(gyro))
 
-        # Check for an offset request
-        if(self.imu.setZero_request):
-            print("send setZero request")
-            await self.client.write_gatt_char(self._uuid["setZero"], bytearray([1]))
-            self.imu.setZero_request = 0
+                # Check for an offset request
+                if(self.imu.setZero_request):
+                    print("send setZero request")
+                    await self.client.write_gatt_char(self._uuid["setZero"], bytearray([1]))
+                    self.imu.setZero_request = 0
+            except:
+                print("IMU ERROR")
 
         #---------------- MOTORS ----------------#    
 
@@ -176,6 +184,7 @@ class BLE(Thread):
             await self.client.write_gatt_char(self._uuid[self.selected_motor_name], bytearray([val]))
 
         #---------------- PARAMETERS ----------------#
+        print(self.param_request)
         if len(self.param_request) >= 2:
             try:
                 val = min([255, max([int(self.param_request['value']), 0])])
@@ -188,7 +197,7 @@ class BLE(Thread):
 
     #------------------------------------------------------------#
 
-    def connect(self, deviceName='Seeed XIAO nRF58240 BLE'):
+    def connect(self, deviceName=None):
         self.device2Connect = deviceName
         self.ask2Connect = True
 
@@ -200,8 +209,8 @@ class BLE(Thread):
     #------------------------------------------------------------#
 
     def disconnect(self):
-        #self.connectedDevice = None
-        self.ask2Disconnect = False
+        self.connectedDevice = None
+        self.ask2Disconnect = True
         pass
 
     #------------------------------------------------------------#
