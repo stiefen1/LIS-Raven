@@ -772,6 +772,7 @@ class GUI:
         write_config_file(self.currentConfig)
         self._configList_2_treeData()
         self._update_tree()
+        self.currentConfig_label.configure(text="Current configuration : " + self.currentConfig.name)
         messagebox.showinfo(title="save configuration as", message="File " + self.currentConfig.name + ".txt has been successfully saved !")
 
     #------------------------------------------------------------#

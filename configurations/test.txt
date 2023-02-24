@@ -1,9 +1,0 @@
-test
-param
-	Kp	f2812df0-21b8-4bdf-9872-daf1cb2719f4
-	Ki	e28e17cb-1746-46b7-bc82-13c5f5bac484
-servo
-	servo_left	3de3f032-ebea-438b-9e78-d8348929f453
-	servo_right	19ed89ba-892e-4403-95ab-23f423376351
-bdc
-sma
