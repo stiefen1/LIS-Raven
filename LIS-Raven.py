@@ -2,12 +2,6 @@
 
 # RESTE A FAIRE :
 #       - METTRE POP-UP D'ERREUR QUAND ON EST PAS CONNECTE AU BLUETOOTH
-#       - FIXER LES VALEURS QUI PEUVENT ÊTRE ENVOYE ENTRE 0 - 255 PEU IMPORTE LE MOTEUR
-#       - Highlight la configuration actuellement utilisée
-#       - Enregistrement des fichers se fait seulement dans le dossier courant, peut être ajouter un attribut path dans configuration !
-#       - Pour la génération du code, ajouter l'IMU si la case est cochée
-#       - Corriger le Set Zero de l'IMU -> Ce serait juste une variable booléenne à part. L'offset serait utilisé dans le code Arduino directement
-#         il n'y aurait pas de correction de cet offset dans l'interface, on lirait simplement les valeurs en provenance de l'Arduino
 
 from threading import Thread
 import asyncio, os, uuid
@@ -261,6 +255,9 @@ class GUI:
     def _init_frmControl(self):
         self.frmControl = ttk.Frame(self.mainWindow)
 
+        ########################################### Configuration Label ####################################################
+        self.currentConfig_label = ttk.Label(self.frmControl, text = "Current configuration : ")
+
         ########################################### Top Frame ####################################################
         self.subfrmControlT = ttk.LabelFrame(self.frmControl, text=" Measurements ", style="TLabelframe")
 
@@ -328,14 +325,15 @@ class GUI:
 
         
         ######################################## Packing all together ####################################################
-        for i in range(3):
+        for i in range(4):
             for j in range(1):
                 self.frmControl.rowconfigure(i, weight=1)
                 self.frmControl.columnconfigure(j, weight=1)
 
-        self.subfrmControlT.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-        self.subfrmControlM.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
-        self.subfrmControlB.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="nsew")
+        self.currentConfig_label.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        self.subfrmControlT.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+        self.subfrmControlM.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="nsew")
+        self.subfrmControlB.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
         self.frmControl.grid(row=0, column=3, rowspan=5, columnspan=2, sticky="nsew")
 
@@ -465,6 +463,8 @@ class GUI:
             
         except:
             pass
+
+        self.currentConfig_label.configure(text="Current configuration : " + self.currentConfig.name)
 
     #------------------------------------------------------------#
 
@@ -811,7 +811,7 @@ class GUI:
                             newfile.write("BLEByteCharacteristic " + element + "_char(\"" + uuid + "\", BLEWriteWithoutResponse | BLERead);\n")
 
                     if self.ThreadBLE.useIMU:
-                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ"]:
+                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ", "setZero_IMU"]:
                             newfile.write("BLEByteCharacteristic " + axis + "_char(\"" + self.ThreadBLE._uuid[axis] \
                                         + "\", BLEWriteWithoutResponse | BLERead);\n")
                 
@@ -828,7 +828,7 @@ class GUI:
                             newfile.write("    seeedService.addCharacteristic(" + element + "_char);\n")
 
                     if self.ThreadBLE.useIMU:
-                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ"]:
+                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ", "setZero_IMU"]:
                             newfile.write("    seeedService.addCharacteristic(" + axis + "_char);\n")
 
                 elif line == "    // set the initial value to 0\n":
@@ -838,7 +838,7 @@ class GUI:
                             newfile.write("    " + element + "_char.writeValue(0);\n")
 
                     if self.ThreadBLE.useIMU:
-                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ"]:
+                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ", "setZero_IMU"]:
                             newfile.write("    " + axis + "_char.writeValue(0);\n")
 
                 elif line == "    // *Set advertised local name and service UUID*\n":
@@ -857,6 +857,7 @@ class GUI:
                 elif line == "// *IMU class and variables*\n" and self.ThreadBLE.useIMU:
                     newfile.write("LSM6DS3 IMU(I2C_MODE, 0x6A);\n"\
                                 + "float aX, aY, aZ, gX, gY, gZ;\n"\
+                                + "uint32_t setZero_IMU = 0;\n"\
                                 + "float imu[6];\n")
 
                 elif line == "    // *Begin IMU*\n" and self.ThreadBLE.useIMU:
@@ -872,11 +873,14 @@ class GUI:
                     for i, axis in enumerate(["aX", "aY", "aZ", "gX", "gY", "gZ"]):
                         newfile.write("            " + axis + "_char.writeValue(max(0, min(255, abs(int(255 * imu[" + str(i) + "]))))); // clip value as integer between 0 - 255\n")
                     
+                    newfile.write("            if(setZero_IMU_char.written()){\n                setZero_IMU = setZero_IMU_char.value();\n            }\n") 
 
                 elif line == "    // *Read IMU values*\n" and self.ThreadBLE.useIMU:
                     tab = ["AccelX", "AccelY", "AccelZ", "GyroX", "GyroY", "GyroZ"]
                     for i, axis in enumerate(["aX", "aY", "aZ", "gX", "gY", "gZ"]):
                         newfile.write("    imu[" + str(i) + "] = IMU.readFloat" + tab[i] + "();\n")
+
+                    newfile.write("    if(setZero_IMU_char.written()){\n        setZero_IMU = setZero_IMU_char.value();\n    }\n")
                 
             newfile.close()
             

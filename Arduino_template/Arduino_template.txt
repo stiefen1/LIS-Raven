@@ -1,14 +1,14 @@
 #include <ArduinoBLE.h>
 // *IMU libraries*
 
-// *IMU class and variables*
-
 // BLE Service handling communication with computer
 BLEService seeedService("13012F00-F8C3-4F4A-A8F4-15CD926DA146");
 
 // *BLE Characteristics*
 
 // *Declare variables to store datas*
+
+// *IMU class and variables*
 
 ///////////////////////////////////////////////////A\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 

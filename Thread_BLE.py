@@ -17,13 +17,13 @@ class BLE(Thread):
         super().__init__()
         
         self._uuid_init = {
-            "aX":str(uuid.uuid4()),
-            "aY":str(uuid.uuid4()),
-            "aZ":str(uuid.uuid4()),
-            "gX":str(uuid.uuid4()),
-            "gY":str(uuid.uuid4()),
-            "gZ":str(uuid.uuid4()),
-            "setZero":str(uuid.uuid4())}
+            "aX":"a876301a-11e2-483f-bc99-25bc9c7ce520",
+            "aY":"0c6515ab-8006-4690-a297-e26b0850177d",
+            "aZ":"1765d425-20da-48ea-989e-7ef47112c4ca",
+            "gX":"1341d52d-efa4-452d-86bf-53a91935caa8",
+            "gY":"b9e209c5-465d-4d04-974c-78e625764859",
+            "gZ":"3d2bd9c9-8df0-426d-9e84-e72db8b1341a",
+            "setZero_IMU":"e7a836a1-350a-4f65-8a6c-d670d064914f"}
 
         self._uuid = self._uuid_init
 
@@ -130,7 +130,7 @@ class BLE(Thread):
                 # Check for an offset request
                 if(self.imu.setZero_request):
                     print("send setZero request")
-                    await self.client.write_gatt_char(self._uuid["setZero"], bytearray([1]))
+                    await self.client.write_gatt_char(self._uuid["setZero_IMU"], bytearray([1]))
                     self.imu.setZero_request = 0
             except:
                 print("IMU ERROR")
@@ -150,7 +150,7 @@ class BLE(Thread):
             await self.client.write_gatt_char(self._uuid[self.selected_motor_name], bytearray([val]))
 
         #---------------- PARAMETERS ----------------#
-        print(self.param_request)
+
         if len(self.param_request) >= 2:
             try:
                 val = min([255, max([int(self.param_request['value']), 0])])
