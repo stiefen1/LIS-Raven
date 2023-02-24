@@ -1,9 +1,0 @@
-FixedWing
-servo
-	motorA	sagesa4
-bdc
-	motorB	agesa5
-	motorC	543284
-param
-	Ti	2375
-	Td	23475

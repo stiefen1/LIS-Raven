@@ -53,14 +53,12 @@ class BLE(Thread):
 
     async def wait2Discover(self):
         while not(self.ask2Discover):
-            #print("wait2discover")
             await asyncio.sleep(0.5)
 
     #------------------------------------------------------------#
 
     async def wait2Connect(self):
         while not(self.ask2Connect):
-            #print("wait2connect")
             await asyncio.sleep(0.5)
         self.ask2Connect = False
 
@@ -90,9 +88,7 @@ class BLE(Thread):
                             async with BleakClient(d.address) as self.client:
                                 self.connectedDevice = d.name
                                 while not(self.ask2Disconnect):
-                                    print("com")
                                     await self.communicate()
-                                    print("com fin")
 
                                 await self.client.disconnect()
                                 self.ask2Disconnect = False
@@ -120,13 +116,13 @@ class BLE(Thread):
                 gyro[1] = await self.client.read_gatt_char(self._uuid["gY"])
                 gyro[2] = await self.client.read_gatt_char(self._uuid["gZ"])
 
-                acc[0] = int.from_bytes(acc[0], "little")/100 - 1000
-                acc[1] = int.from_bytes(acc[1], "little")/100 - 1000
-                acc[2] = int.from_bytes(acc[2], "little")/100 - 1000
+                acc[0] = int.from_bytes(acc[0], "little")
+                acc[1] = int.from_bytes(acc[1], "little")
+                acc[2] = int.from_bytes(acc[2], "little")
 
-                gyro[0] = int.from_bytes(gyro[0], "little")/100 - 1000
-                gyro[1] = int.from_bytes(gyro[1], "little")/100 - 1000
-                gyro[2] = int.from_bytes(gyro[2], "little")/100 - 1000
+                gyro[0] = int.from_bytes(gyro[0], "little")
+                gyro[1] = int.from_bytes(gyro[1], "little")
+                gyro[2] = int.from_bytes(gyro[2], "little")
 
                 self.imu._set_acc(np.array(acc))
                 self.imu._set_gyro(np.array(gyro))
@@ -142,30 +138,6 @@ class BLE(Thread):
         #---------------- MOTORS ----------------#    
 
         # Check if there is a position or min/max request
-        # temporary variable that will select the right value to send into the motor selection characteristic
-
-##        sel = 0
-##        val = None
-##        for i, m in enumerate(self.motors):
-##            sel = i
-##            if self.motors[m].setMin_request == True:
-##                self.motors[m].setMin_request = False
-##                sel += 0
-##                val = self.motors[m].minPos
-##                break
-##
-##            elif self.motors[m].setCommand_request == True:
-##                self.motors[m].setCommand_request = False
-##                sel += len(self.motors)
-##                val = self.motors[m].pos
-##                break
-##
-##            elif self.motors[m].setMax_request == True:
-##                self.motors[m].setMax_request = False
-##                sel += 2 * len(self.motors)
-##                val = self.motors[m].maxPos
-##                break
-
         val = None
         for key in self.motors:
             if self.motors[key].setCommand_request == True:
@@ -174,9 +146,6 @@ class BLE(Thread):
                 
         # Check if there was at least one request       
         if(val is not None):
-            # await self.client.write_gatt_char(self._uuid["motorVal"], bytearray([int(val)])) # Delete floating part
-            # await self.client.write_gatt_char(self._uuid["motorSel"], bytearray([sel]))
-            
             val = min([255, max([int(val), 0])]) # Clip value between 0 and 255
             await self.client.write_gatt_char(self._uuid[self.selected_motor_name], bytearray([val]))
 
@@ -208,14 +177,3 @@ class BLE(Thread):
     def disconnect(self):
         self.connectedDevice = None
         self.ask2Disconnect = True
-        pass
-
-    #------------------------------------------------------------#
-
-    async def read(self):
-        pass
-
-    #------------------------------------------------------------#
-
-    async def write(self):
-        pass

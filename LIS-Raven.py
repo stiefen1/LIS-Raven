@@ -4,9 +4,7 @@
 #       - METTRE POP-UP D'ERREUR QUAND ON EST PAS CONNECTE AU BLUETOOTH
 #       - FIXER LES VALEURS QUI PEUVENT ÊTRE ENVOYE ENTRE 0 - 255 PEU IMPORTE LE MOTEUR
 #       - Highlight la configuration actuellement utilisée
-#       - QUAND ON CLIQUE SUR NEW CONFIG PEUT ETRE AJOUTE UNE CONFIG DANS LA LISTE EN DEMANDANT LE NOM
 #       - Enregistrement des fichers se fait seulement dans le dossier courant, peut être ajouter un attribut path dans configuration !
-#       - Augmenter la hauteur des popup moteur et param
 #       - Pour la génération du code, ajouter l'IMU si la case est cochée
 #       - Corriger le Set Zero de l'IMU -> Ce serait juste une variable booléenne à part. L'offset serait utilisé dans le code Arduino directement
 #         il n'y aurait pas de correction de cet offset dans l'interface, on lirait simplement les valeurs en provenance de l'Arduino
@@ -47,7 +45,7 @@ class GUI:
         
         self.mainWindow = tk.Tk()
         self.mainWindow.option_add("*tearOff", False)
-        self.mainWindow.tk.call('source', 'Forest-ttk-theme-master/forest-' + style + '.tcl')
+        self.mainWindow.tk.call('source', 'Theme/Forest-ttk-theme-master/forest-' + style + '.tcl')
         ttk.Style().theme_use('forest-' + style)
 
         self.title_font = Font(
@@ -424,7 +422,10 @@ class GUI:
             if len(self.configList) == 0: # If the list is empty, create a default (empty) configuration
                 self.configList.append(configuration())
                 self.currentConfig = self.configList[0]
-                
+            else:
+                self.currentConfig = self.configList[i-1]
+
+            self._set_config(config_number=i-1)
             self._configList_2_treeData()    
             self._update_tree()
             
@@ -433,13 +434,15 @@ class GUI:
 
     #------------------------------------------------------------#
 
-    def _set_config(self):
+    def _set_config(self, config_number=None):
         self._init_frmTable()
         self.motorSel_comboBoxB['values'] = []
 
         try:
             # Change current configuration
-            config_number = int(self.tree.focus())
+            if config_number is None:
+                config_number = int(self.tree.focus())
+                
             config_name = self.treeData[config_number-1][2]
             for i, config in enumerate(self.configList, start=0):
                 if config.name == config_name:
@@ -745,13 +748,20 @@ class GUI:
     #------------------------------------------------------------#
 
     def _create_new_config(self):
-        messagebox.showinfo(title="create new configuration", message="To create a new pre-defined configuration, create a text file and fill it in the same way as in the example 'config.txt' ")
-
+        self.configList.insert(0, configuration())
+        self.currentConfig = self.configList[0]
+        self._set_config(config_number=0)
+        self._configList_2_treeData()    
+        self._update_tree()
+        
     #------------------------------------------------------------#
 
     def _save_config(self):
-        write_config_file(self.currentConfig)
-        messagebox.showinfo(title="save configuration", message="File " + self.currentConfig.name + ".txt has been successfully saved !")
+        if self.currentConfig.name == "default":
+            self._save_config_as()
+        else:
+            write_config_file(self.currentConfig)
+            messagebox.showinfo(title="save configuration", message="File " + self.currentConfig.name + ".txt has been successfully saved !")
 
     #------------------------------------------------------------#
 
@@ -799,6 +809,11 @@ class GUI:
                     for key in self.currentConfig.data:
                         for element, uuid in zip(self.currentConfig.data[key], self.currentConfig.uuid[key]):
                             newfile.write("BLEByteCharacteristic " + element + "_char(\"" + uuid + "\", BLEWriteWithoutResponse | BLERead);\n")
+
+                    if self.ThreadBLE.useIMU:
+                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ"]:
+                            newfile.write("BLEByteCharacteristic " + axis + "_char(\"" + self.ThreadBLE._uuid[axis] \
+                                        + "\", BLEWriteWithoutResponse | BLERead);\n")
                 
                 elif line == "// *Declare variables to store datas*\n":
                     # Add variables
@@ -812,21 +827,56 @@ class GUI:
                         for element in self.currentConfig.data[key]:
                             newfile.write("    seeedService.addCharacteristic(" + element + "_char);\n")
 
+                    if self.ThreadBLE.useIMU:
+                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ"]:
+                            newfile.write("    seeedService.addCharacteristic(" + axis + "_char);\n")
+
                 elif line == "    // set the initial value to 0\n":
                     # Set initial value of the variables to 0
                     for key in self.currentConfig.data:
                         for element in self.currentConfig.data[key]:
                             newfile.write("    " + element + "_char.writeValue(0);\n")
 
+                    if self.ThreadBLE.useIMU:
+                        for axis in ["aX", "aY", "aZ", "gX", "gY", "gZ"]:
+                            newfile.write("    " + axis + "_char.writeValue(0);\n")
+
                 elif line == "    // *Set advertised local name and service UUID*\n":
                     # Set initial value of the variables to 0
                     newfile.write("    BLE.setLocalName(\"" + self.currentConfig.name + "\");\n")
                 
-                elif line == "	    // *Read values*\n":
+                elif line == "            // *Read values*\n":
                     # Read values of each characteristic
                     for key in self.currentConfig.data:
                         for element in self.currentConfig.data[key]:
                             newfile.write("            if(" + element + "_char.written()){\n                " + element + " = " + element + "_char.value();\n            }\n")                    
+
+                elif line == "// *IMU libraries*\n" and self.ThreadBLE.useIMU:
+                    newfile.write("#include <LSM6DS3.h>\n#include <Wire.h>\n")
+
+                elif line == "// *IMU class and variables*\n" and self.ThreadBLE.useIMU:
+                    newfile.write("LSM6DS3 IMU(I2C_MODE, 0x6A);\n"\
+                                + "float aX, aY, aZ, gX, gY, gZ;\n"\
+                                + "float imu[6];\n")
+
+                elif line == "    // *Begin IMU*\n" and self.ThreadBLE.useIMU:
+                    newfile.write("    if(IMU.begin())  {\n"\
+                                + "        Serial.println(\"STARTING IMU FAILED\");\n"\
+                                + "        while(1);\n    }\n")
+
+                elif line == "            // *Read and write IMU values*\n" and self.ThreadBLE.useIMU:
+                    tab = ["AccelX", "AccelY", "AccelZ", "GyroX", "GyroY", "GyroZ"]
+                    for i, axis in enumerate(["aX", "aY", "aZ", "gX", "gY", "gZ"]):
+                        newfile.write("            imu[" + str(i) + "] = IMU.readFloat" + tab[i] + "();\n")
+
+                    for i, axis in enumerate(["aX", "aY", "aZ", "gX", "gY", "gZ"]):
+                        newfile.write("            " + axis + "_char.writeValue(max(0, min(255, abs(int(255 * imu[" + str(i) + "]))))); // clip value as integer between 0 - 255\n")
+                    
+
+                elif line == "    // *Read IMU values*\n" and self.ThreadBLE.useIMU:
+                    tab = ["AccelX", "AccelY", "AccelZ", "GyroX", "GyroY", "GyroZ"]
+                    for i, axis in enumerate(["aX", "aY", "aZ", "gX", "gY", "gZ"]):
+                        newfile.write("    imu[" + str(i) + "] = IMU.readFloat" + tab[i] + "();\n")
                 
             newfile.close()
             

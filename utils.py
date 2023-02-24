@@ -102,6 +102,7 @@ class configuration:
 
 def read_config_file(filename):
     config = configuration()
+    config.path = filename
 
     # Get the filename as "name.txt"
     with open(filename) as file:
@@ -128,15 +129,26 @@ def read_config_file(filename):
 def write_config_file(config):
     """ name [str] : Name of the configuration
         config [dict(list)] : Configuration architecture"""
-    while(config.name[-4::] == '.txt'):
-        config.name = config.name[0:-4]
-    with open(config.name + '.txt', 'w') as file:
-        file.write(config.name + "\n")
-        for key in config.data:
-            file.write(key + "\n")
-            for obj, uuid in zip(config.data[key], config.uuid[key]):
-                file.write("\t" + obj + "\t" + uuid + "\n")
+    name = config.name
+    path = config.path
+    
+    while(name[-4::] == '.txt'):
+        name = name[0:-4] # Remove .txt extension
 
+    while(path[-4::] == '.txt'):
+        path = path[0:-4] # Remove .txt extension
+
+    if path == "":
+        file = open("configurations/" + name + '.txt', 'w')
+    else:
+        file = open(path + '.txt', 'w')
+                    
+    file.write(name + "\n")
+    for key in config.data:
+        file.write(key + "\n")
+        for obj, uuid in zip(config.data[key], config.uuid[key]):
+            file.write("\t" + obj + "\t" + uuid + "\n")
+    file.close()
 
 
 
