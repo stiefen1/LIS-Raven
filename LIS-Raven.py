@@ -9,7 +9,6 @@ import tkinter as tk
 from tkinter import ttk, END, messagebox
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter.font import Font
-import numpy as np
 from Thread_BLE import*
 from utils import*
 
