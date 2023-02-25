@@ -7,7 +7,7 @@ This repository provides a GUI (Python - Tkinter) to manage Bluetooth Low-Energy
 
 which contains several frames :
 
-## 1.1) Select Configuraion
+## 1.1) Select Configuration
 A configuration is a set of motors and parameters and their associated [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) address. It is recommended to use the GUI to create configuration since it will automatically uses valid UUID identifier. Nevertheless, it is also possible to create it in a .txt file with the same convention as the examples provided in the [configurations](configurations) folder.
 
 ## 1.2) Parameters to Send
