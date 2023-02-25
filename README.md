@@ -39,4 +39,4 @@ Then, to launch the GUI open ```LIS-Raven.py``` and click on ```Run->Run Module`
 
 ## 2.3) Using executable
 
-Then, simply run ```LIS-Raven.exe``` to launch the GUI.
+An executable which has been generated using [PyInstaller](https://pypi.org/project/pyinstaller/) with ```pyinstaller --onefile LIS-Raven.py``` is available in the [dist](dist) folder. To launch the GUI, you can just download this folder and run the ```LIS-Raven.exe``` executable.
