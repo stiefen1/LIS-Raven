@@ -14,7 +14,7 @@ A configuration is a set of motors and parameters and their associated [UUID](ht
 ## 1.2) Parameters to Send
 This frame allows tu add up to 5 parameters to a configuration. Each parameter is added using the green "+" button. For each of them, user needs to specify the name of the parameter while the uuid is automatically generated (but can be modified by the user). When you're done, a button with the name of the parameter on it and an entry appear. To send values, just fill in the entry with an 8-bits unsigned integer and click on the button.
 
-************************************** IMPORTANT : VALUES CAN ONLY BE UNSIGNED 8-BITS INTEGER, i.e. in [0 ; 255] ************************************************
+************************ IMPORTANT : VALUES CAN ONLY BE UNSIGNED 8-BITS INTEGER, i.e. VALUES IN [0 ; 255] *************************
 
 ## 1.3) Measurements
 This frame is left unused in this version but may be used latter to display onboard measurements from the vehicle.
