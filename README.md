@@ -1,4 +1,9 @@
+<link rel="stylesheet" type="text/css" href="mystyle.css">
+
 # LIS-Raven
+
+<span>hello</span>
+
 
 # 1.0) Main Features
 This repository provides a GUI (Python - Tkinter) to manage Bluetooth Low-Energy Communication between a computer and a vehicle programmed using Arduino. The GUI enables to create and save specific configurations and directly generate Arduino code that handles the BLE communication for the configuration's motors and parameters. It can also display accelerometer and gyroscope values for Arduino board that contain a LSM6DS3 IMU. When the GUI is launched, the following window appears :
