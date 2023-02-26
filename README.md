@@ -23,20 +23,16 @@ A configuration is a set of motors and parameters and their associated [UUID](ht
 # 2.0) Installation
 ## 2.1) Dependencies
 The code has been tested on Windows 10 using Python 3.9 and has the following dependencies :
-- [tkinter](https://docs.python.org/3/library/tkinter.html)
 - [numpy](https://pypi.org/project/numpy/)
 - [bleak](https://pypi.org/project/bleak/)
-- [os](https://docs.python.org/3/library/os.html)
-- [asyncio](https://docs.python.org/3/library/asyncio.html)
 - [uuid](https://docs.python.org/3/library/uuid.html)
-- [threading](https://docs.python.org/3/library/threading.html)
 
-To install all, uses ```pip install -requirements.txt```
+To install all, uses ```pip install -r -requirements.txt```
 
 ## 2.2) Using virtual environment
 
-Then, to launch the GUI open ```LIS-Raven.py``` and click on ```Run->Run Module```.
+Create a new virtual environment, for example using venv : ```python -m venv myenv```.
+Activate you environment, for example in a Windows command prompt : ```cd myenv/Scripts && activate.bat```.
+Then install the dependencies within your virtual environment using the ```requirements.txt``` file in the LIS-Raven folder : ```pip install -r requirements.txt```. This will install the numpy, bleak and uuid libraries.
 
-## 2.3) Using executable
-
-An executable which has been generated using [PyInstaller](https://pypi.org/project/pyinstaller/) with ```pyinstaller --onefile LIS-Raven.py``` is available in the [dist](dist) folder. To launch the GUI, you can just download this folder and run the ```LIS-Raven.exe``` executable.
+Then, to launch the GUI simply run ```LIS-Raven.py``` from the LIS-Raven folder in the command prompt. 
