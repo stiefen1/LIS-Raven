@@ -1,5 +1,0 @@
-hello
-param
-servo
-bdc
-sma
