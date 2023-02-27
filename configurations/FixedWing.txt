@@ -1,0 +1,10 @@
+FixedWing
+param
+	Kp	03efc53e-9d96-4425-ad87-2562a63c31e0
+	Kd	ff7922e9-e109-407c-841a-0445178b13b8
+servo
+	left_wing	b262225d-ce6d-4eae-8063-1d09f98c1fee
+	right_wing	fd2858b6-2527-438f-9ac5-f67a73e5b956
+bdc
+	nose	8b3c22f9-71d7-4bb6-907e-a9ff24e12214
+sma
