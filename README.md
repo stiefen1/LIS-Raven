@@ -36,7 +36,7 @@ The code has been tested on Windows 10 using Python 3.9 and has the following de
 - [bleak](https://pypi.org/project/bleak/)
 - [uuid](https://docs.python.org/3/library/uuid.html)
 
-To install all, use ```pip install -r -requirements.txt```
+To install all, use ```pip install -r -requirements.txt```. The auto-generated Arduino code require the [ArduinoBLE](https://reference.arduino.cc/reference/en/libraries/arduinoble/) library which can be installed using the [library manager](https://docs.arduino.cc/software/ide-v1/tutorials/installing-libraries).
 
 ## 2.2) Using virtual environment
 
